@@ -16,8 +16,8 @@
 		timestamp : year+month+day+"_"+hour+":"+min+":"+sec,
 		data : [
 			{host : "host1", rack : "rack1", capacity : 130, used : 0},
-			{host : "host2", rack : "rack1", capacity : 74, used : 52+parseInt(Math.random()*20)},
 			{host : "host3", rack : "rack1", capacity : 72, used : 33+parseInt(Math.random()*20)},
+			{host : "host2", rack : "rack1", capacity : 74, used : 52+parseInt(Math.random()*20)},
 			{host : "host4", rack : "rack1", capacity : 120, used : 43+parseInt(Math.random()*20)},
 			{host : "host5", rack : "rack1", capacity : 60, used : 42+parseInt(Math.random()*20)},
 			{host : "host6", rack : "rack1", capacity : 142, used : 43+parseInt(Math.random()*20)},

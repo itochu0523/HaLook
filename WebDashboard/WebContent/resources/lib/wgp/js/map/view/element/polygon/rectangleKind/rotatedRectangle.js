@@ -46,25 +46,29 @@ function rotatedRectangle(elementProperty, paper){
 rotatedRectangle.prototype = new mapElement();
 
 rotatedRectangle.prototype.createPositionArray = function(args){
+	console.log(args);
+	var cos = Math.cos(args.angle);
+	var sin = Math.sin(args.angle);
+	/*
 	var angleRadian = args.angle;
 	var angleRadianPlus = args.angle + Math.PI / 2;
 	var angleRadianMinus = args.angle - Math.PI / 2;
-	
+	*/
 	var origin = {
-		x : (args.radius + args.height) * Math.cos(angleRadian) //ラジアンにする
-				+ args.width * Math.cos(angleRadianMinus)/2,
-		y : (args.radius + args.height) * Math.sin(angleRadian) //ラジアンにする
-				+ args.width * Math.sin(angleRadianMinus)/2
+		x : (halook.hdfs.constants.mainCircle.radius + args.height) * cos
+				+ args.width * sin/2,
+		y : (halook.hdfs.constants.mainCircle.radius + args.height) * sin
+				+ args.width * -cos/2
 	};
 	
 	var topEdge = {
-		x :  args.width * Math.cos(angleRadianPlus),
-		y : args.width * Math.sin(angleRadianPlus)
+		x :  args.width * sin,
+		y : args.width * cos
 	};
 
 	var leftEdge = {
-		x :  -args.height * Math.cos(angleRadian),
-		y : -args.height * Math.sin(angleRadian)
+		x :  -args.height * cos,
+		y : -args.height * sin
 	};
 
 	
@@ -93,7 +97,7 @@ rotatedRectangle.prototype.createPositionArray = function(args){
     // ポジションのリスト
     var positionArray = new Array();
     // 左上ポジション
-    var firstPosition = new Position(args.centerX + origin.x, args.centerY - origin.y);
+    var firstPosition = new Position(args.center.x + origin.x, args.center.y - origin.y);
     positionArray.push(firstPosition);
     // 右上ポジション
     var secondPosition = new Position(topEdge.x, -topEdge.y);
@@ -104,7 +108,7 @@ rotatedRectangle.prototype.createPositionArray = function(args){
     // 右下ポジション
     var forthPosition = new Position(-topEdge.x, topEdge.y);
     positionArray.push(forthPosition);
-
+    console.log(positionArray);
 	return positionArray;
 };
 

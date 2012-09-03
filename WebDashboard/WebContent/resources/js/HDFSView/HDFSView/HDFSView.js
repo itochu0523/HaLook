@@ -31,15 +31,17 @@ halook = {};
 halook.hdfs = {};
 halook.hdfs.constants = {};
 
+halook.hdfs.constants.cycle = 5000;
+
 halook.hdfs.constants.bgColor = "#303232";
 
 halook.hdfs.constants.mainCircle = {};
-halook.hdfs.constants.mainCircle.radius = 150;
+halook.hdfs.constants.mainCircle.radius = 140;
 halook.hdfs.constants.mainCircle.innerRate = 0.2;
 halook.hdfs.constants.mainCircle.transferLineColor = "#EEEEEE";
 
 halook.hdfs.constants.dataNode = {};
-halook.hdfs.constants.dataNode.frameColor = "#FFFFFF";
+halook.hdfs.constants.dataNode.frameColor = "rgba(255,255,255,0.5)";
 halook.hdfs.constants.dataNode.color = {
 									good : "#0C80A0",
 									full : "#F09B4A",
@@ -48,7 +50,7 @@ halook.hdfs.constants.dataNode.color = {
 
 halook.hdfs.constants.blockTransfer = {};
 halook.hdfs.constants.blockTransfer.width = 4;
-halook.hdfs.constants.blockTransfer.color = {inward : "#0C80A0", outward : "#0C80A0"};
+halook.hdfs.constants.blockTransfer.colorThreshold = 10;
 
 halook.hdfs.constants.rack = {};
 halook.hdfs.constants.rack.height = 10;
@@ -60,29 +62,31 @@ halook.hdfs.constants.dataNode.status = {};
 halook.hdfs.constants.dataNode.status.good = 0;
 halook.hdfs.constants.dataNode.status.full = 1;
 halook.hdfs.constants.dataNode.status.dead = 2;
+halook.hdfs.constants.cycleInterval = 2000;
 
 
 
 
-
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 HDFSView = wgp.AbstractView.extend({
-//////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////
     initialize:function(argument){
 		//vars
-    	//set view size
+        //setting view type
+        this.viewType = wgp.constants.VIEW_TYPE.VIEW;
+		//set bg color and height
+		this._initView();
+
+        //set view size
     	this.width = argument["width"];
     	this.height = argument["height"];
-        var realTag = $("#" + this.$el.attr("id"));
+    	var realTag = $("#" + this.$el.attr("id"));
         if (this.width == null) {
             this.width = realTag.width();
         }
         if (this.height == null) {
             this.height = realTag.height();
         }
-
-        //setting view type
-        this.viewType = wgp.constants.VIEW_TYPE.VIEW;
         
         //init collection
     	this.collection = new MapElementList();
@@ -98,15 +102,15 @@ HDFSView = wgp.AbstractView.extend({
     	
     	//init ids for view on this view
     	this.maxId = 0;
-    	this.nextId = 0;
+    	this.nextId = -1;
 
     	//data node
     	this.numberOfDataNode = dataFromServer.data.length;		
-    	this.dataNodeBarWidth = halook.hdfs.constants.mainCircle.radian * 2 * Math.PI / this.numberOfDataNode;
+    	this.dataNodeBarWidth = halook.hdfs.constants.mainCircle.radius * 2 * Math.PI / this.numberOfDataNode;
     	this.dataNodeChangeType = wgp.constants.CHANGE_TYPE.ADD;
 
     	//base numbers for drawing
-    	this.center = {x : viewArea2.width/2, y : viewArea2.height/2 - 70};
+    	this.center = {x : viewArea2.width/2, y : viewArea2.height/2 - 90};
     	this.angleUnit = utility.toRadian(360/this.numberOfDataNode);
     	
     	//block transfer
@@ -118,19 +122,13 @@ HDFSView = wgp.AbstractView.extend({
     	//rack
     	this.numberOfRackColors = halook.hdfs.constants.rack.colors.length;
     	
-    	//data from server
-		this.receivedData = [];
     	
-		//drawing
-		//set bg color and height
-		this._initView();
-		
-		//set paper
-		this.render();
+		///////temporary function: renew input data
+		setDataFromServer();
+		///////temporary function: renew input data									
 
-		//static objects
-		this._staticRender();
-		
+		//drawing
+		//non-raphael elements
 		//add slider
 		this._addSlider();
 		
@@ -139,6 +137,14 @@ HDFSView = wgp.AbstractView.extend({
 		
 		//add div for cluster status
 		this._addClusterStatus();
+		
+		//set paper
+		this.render();
+
+		//raphael emements
+		//static objects
+		this._staticRender();
+
 		
 		//prepare for animation
 		//block transfer
@@ -154,6 +160,7 @@ HDFSView = wgp.AbstractView.extend({
     _staticRender:function(){
 		//drawing static object
     	//core circle (name node)
+    	//console.log(this.paper);
 		this.paper.circle(
 				this.center.x,
 				this.center.y,
@@ -283,13 +290,13 @@ HDFSView = wgp.AbstractView.extend({
 		//div for cluster status
     	$("#"+this.$el.attr("id")).parent().prepend(
     			'<div style="background-color:rgba(255,255,255,0.9);">'+
-    			'<h3 style="margin:15px;">'+
-    			'Cluster Status'+
-    			'</h3>'+
-    			'<div id="clusterStatus" '+
+    			'<b>'+
+    			'Cluster Status : '+
+    			'</b>'+
+    			'<span id="clusterStatus" '+
     			'style="padding:0 10px 10px 10px;">'+
     			'total capacity : 1TB, name node : 100, data node : 100'+
-    			'</div>'+
+    			'</span>'+
     			'</div>'
     		);		
 	},
@@ -300,8 +307,15 @@ HDFSView = wgp.AbstractView.extend({
 		var self = this;
 		setTimeout(self.dataNodeInterval("contents_area_0"),10);
 		setTimeout(self.blockTransferInterval("contents_area_0"),10);
-		this.timerDn = setInterval(self.dataNodeInterval("contents_area_0"),5000);
-		this.timerBt = setInterval(self.blockTransferInterval("contents_area_0"),5000);
+		this.timerDn = setInterval(
+				self.dataNodeInterval("contents_area_0"),
+				halook.hdfs.constants.cycle+halook.hdfs.constants.cycleInterval
+			);
+		this.timerBt = setInterval(
+				self.blockTransferInterval("contents_area_0"),
+				halook.hdfs.constants.cycle+halook.hdfs.constants.cycleInterval
+			);
+		//setInterval(function(){console.log("objects : "+self.maxId);},halook.hdfs.constants.cycle);
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -331,9 +345,8 @@ HDFSView = wgp.AbstractView.extend({
 					self._addBlockTransfer(self);
 					self.blockTransferChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
 				}else{
-					//self._updateBlockTransfer();
+					self._updateBlockTransfer(self);
 				}
-				console.log(self);
 				var addData = [{
 					windowId:windowId,
 					data:self.transfer
@@ -346,22 +359,21 @@ HDFSView = wgp.AbstractView.extend({
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 	_addBlockTransfer:function(self){
-		console.log(self);
 		for(var i=0; i<self.numberOfDataNode; i++){
 			self.transfer[i] = {};
 			self.nextId = self._getUniqueId();
 			self.transfer[i].objectId 
 				= self.transfer[i].id 
 					= self.nextId;
-			self.transfer[i].size = 4;//self.diff[i];
+			self.transfer[i].size = 1;//0;//self.diff[i];
 			self.transfer[i].angle = self.angleUnit*i,
-
 			self.blockTransferIdManager.add(self.nextId,dataFromServer.data[i].host);
 		}
-		_.each(self.transfer, function(){
-			this.type = wgp.constants.CHANGE_TYPE.ADD;
-			this.objectName = "BlockTransferAnimation";
-			this.center = self.center;
+		_.each(self.transfer, function(obj){
+			obj.type = wgp.constants.CHANGE_TYPE.ADD;
+			obj.objectName = "BlockTransferAnimation";
+			obj.center = self.center;
+			obj.width = 4;
 		});
 	},
 //////////////////////////////////////////////////////////
@@ -371,16 +383,17 @@ HDFSView = wgp.AbstractView.extend({
 			self.transfer[i].objectId
 				= self.transfer[i].id 
 					= self.blockTransferIdManager.find(dataFromServer.data[i].host);
-			self.transfer[i].size = 6;//diff[i];
+			self.transfer[i].size = self.diff[i];
 		}
-		_.each(self.transfer,function(){
-			this.type = self.blockTransferChangeType;
+		_.each(self.transfer,function(obj){
+			obj.type = self.blockTransferChangeType;
 		});		
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 	_setDataNodeLoop:function(self){
 		self.currentDataNode = [];
+		self.diff = [];
 		
 		self.dataNodeInterval = function(windowId){
 			function innerFunction(){
@@ -389,7 +402,7 @@ HDFSView = wgp.AbstractView.extend({
 				///////temporary function: renew input data									
 				if(self.dataNodeChangeType == wgp.constants.CHANGE_TYPE.ADD){
 					self._addDataNode(self);
-					dataNodeChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
+					self.dataNodeChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
 				}else{
 					self._updateDataNode(self);
 				}
@@ -407,22 +420,14 @@ HDFSView = wgp.AbstractView.extend({
 	_addDataNode:function(self){
 		for(var i=0; i<self.numberOfDataNode; i++){
 			self.nextId = self._getUniqueId();
-			var status = 0;
-			if(dataFromServer.data[i].capacity*0.9 < dataFromServer.data[i].used){
-				status = halook.hdfs.constants.dataNode.status.full;
-			}else if(dataFromServer.data[i].used == 0){
-				status = halook.hdfs.constants.dataNode.status.dead;						
-			}
-			
 			self.currentDataNode[i] = {
 				    objectId : self.nextId,
 				    id : self.nextId,
-				    width : self.dataNodeWidth,
+				    width : self.dataNodeBarWidth,
 				    height : dataFromServer.data[i].used,
 				    angle : self.angleUnit*i,
 				    host : dataFromServer.data[i].host,
 				    capacity : dataFromServer.data[i].capacity,
-				    status : status,
 				    type:wgp.constants.CHANGE_TYPE.ADD,
 				    objectName:"DataNodeRectangle",
 				    center : self.center
@@ -433,32 +438,26 @@ HDFSView = wgp.AbstractView.extend({
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 	_updateDataNode:function(self){
+		///////temporary function: renew input data
+		setDataFromServer();
+		///////temporary function: renew input data									
 		for(var i=0; i<self.numberOfDataNode; i++){
-			self.diff[i] = dataFromServer.data[i].used - receivedData[i].height;
-			var status = 0;
-			if(dataFromServer.data[i].capacity*0.9 < dataFromServer.data[i].used){
-				status = halook.hdfs.constants.dataNode.status.full;
-			}else if(dataFromServer.data[i].used == 0){
-				status = halook.hdfs.constants.dataNode.status.dead;						
-			}
-			
+			self.diff[i] = dataFromServer.data[i].used - self.currentDataNode[i].height;
 			self.currentDataNode[i] = {
-				    type:constants.CHANGE_TYPE.UPDATE,
+				    type:wgp.constants.CHANGE_TYPE.UPDATE,
 				    objectId : self.dataNodeIdManager.find(dataFromServer.data[i].host),
 				    id : self.dataNodeIdManager.find(dataFromServer.data[i].host),
 				    height : dataFromServer.data[i].used,
-				    status : status,
-				    diff : diff[i]
+				    diff : self.diff[i]
 			};
 		}
-		self.receivedData = dataFromServer.data;
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 	_getUniqueId:function(){
 		//return next id
-		var x = this.maxId + 1;
-		return x;
+		this.nextId++;
+		return this.nextId;
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -473,12 +472,11 @@ HDFSView = wgp.AbstractView.extend({
 			var cos = Math.cos(this.angleUnit*i);
 			var sin = Math.sin(this.angleUnit*i);
 			var c = this.center;
-
 			//actual process
 			this.paper.path([
-				 ["M", (c.x + r*cos + w/2*sin), (c.y - r*sin - w/2*sin)],
+				 ["M", (c.x + r*cos + w/2*sin), (c.y - r*sin + w/2*cos)],
 				 ["l", (capacity*cos), (-capacity*sin)],
-				 ["l", (-w*sin), (w* cos)],
+				 ["l", (-w*sin), (-w* cos)],
 				 ["l", (-capacity*cos), (capacity*sin)]
 			]).attr({
 				stroke : halook.hdfs.constants.dataNode.frameColor

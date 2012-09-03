@@ -1,6 +1,44 @@
 wgp.BlockTransferAnimation = Backbone.View.extend({
     initialize:function(argument){
-    	console.log("init");
+    	var args = this.model.attributes;
+    	args.cos = Math.cos(args.angle);
+    	args.sin = Math.sin(args.angle);
+
+    	this.centerStandby = 
+			[
+			 ["M", 
+			  args.center.x,
+			  args.center.y
+			 ],
+			 ["l", 
+			  halook.hdfs.constants.blockTransfer.width * args.cos,
+			  -halook.hdfs.constants.blockTransfer.width * args.sin
+			 ]
+			];
+    	this.edgeStandby = [
+    	       			 ["M", 
+    	    			  args.center.x 
+    	    			  + halook.hdfs.constants.mainCircle.radius * args.cos,
+    	    			  args.center.y 
+    	    			  - halook.hdfs.constants.mainCircle.radius * args.sin
+    	    			 ],
+    	    			 ["l", 
+    	    			  -halook.hdfs.constants.blockTransfer.width * args.cos,
+    	    			  halook.hdfs.constants.blockTransfer.width * args.sin
+    	    			 ]
+    	    			];
+    	this.inTransfer = [
+    	    			 ["M", 
+    	    			  args.center.x 
+    	    			  + halook.hdfs.constants.mainCircle.radius * args.cos, 
+    	    			  args.center.y 
+    	    			  - halook.hdfs.constants.mainCircle.radius * args.sin
+    	    			  ],
+    	    			 ["L",
+    	    			  args.center.x,
+    	    			  args.center.y]
+    	    		];
+
        	_.bindAll();
         this._paper = argument.paper;
         if (this._paper == null) {
@@ -8,58 +46,15 @@ wgp.BlockTransferAnimation = Backbone.View.extend({
             return;
         }
         this.id = this.model.get("objectId");
-        this.render();
-        this.animate();
+        //this.render();
+        //this.animate();
+        this.standby();
     },
     render:function(){
-    	var orginal = {
-    			x : this.model.attributes.centerX + 
-    				this.model.attributes.radius * 
-		    		Math.cos(this.model.attributes.angle) + 
-		    		HDFSConstants.blockTransfer.width * 
-		    		Math.cos(this.model.attributes.angle - Math.PI / 2),
-		    	y : this.model.attributes.centerY - 
-    				this.model.attributes.radius * 
-    				Math.sin(this.model.attributes.angle) + 
-    				HDFSConstants.blockTransfer.width * 
-    				Math.sin(this.model.attributes.angle - Math.PI / 2)
-    	};
-    	
-    	var topEdge = {
-    			x : HDFSConstants.blockTransfer.width * 
-    				Math.cos(this.model.attributes.angle + Math.PI / 2),
-    			y : HDFSConstants.blockTransfer.width * 
-    				Math.cos(this.model.attributes.angle + Math.PI / 2)
-    	}
-    	
-    	var leftEdge = {
-    			x : -this.model.attributes.radius * 
-    				Math.cos(this.model.attributes.angle),
-    			y : -this.model.attributes.radius * 
-					Math.sin(this.model.attributes.angle)
-    	}
-    	
-    	//var size = Math.abs(this.model.attributes.size);
-    	//var color = this.model.attributes.color.inward;
 
-    	if(this.model.attributes.size > 0){
-    		cx = this.model.attributes.centerX;
-    		cy = this.model.attributes.centerY;
-    		color = this.model.attributes.color.outward;
-    	}
-    	
-    	
-    	this.element = this._paper.circle(cx,cy,size).attr({
-    													"fill" : color,
-    													"stroke" : color
-    												});
-    	//this.glow = this.element.glow({width:20,color:"#fff",opacity:0.3});
     },
     update:function(model){
-    	console.log("update");
-
-    	this.element.hide();
-    	this.render();
+    	this.standby();
     	this.animate();
     },
     remove:function(property){
@@ -67,31 +62,57 @@ wgp.BlockTransferAnimation = Backbone.View.extend({
         //this.glow.remove();
         this.element.hide();
     },
-    animate:function(){
-		var viewAttr = this.model.attributes;
-		var tinyDiff = 2500;
+    standby:function(){
     	if(this.model.attributes.size < 0){
-    		this.element.animate(
-	    				{cx:viewAttr.centerX,cy:viewAttr.centerY},
-	    				tinyDiff
-    				);
+    		this._standbyAtEdge();
     	}else{
-        	var cx = viewAttr.centerX + 
-        				viewAttr.radius * 
-						Math.cos(viewAttr.angle);
-        	var cy = viewAttr.centerY - 
-        				viewAttr.radius * 
-        				Math.sin(viewAttr.angle);
-        	var self = this;
-            setTimeout(function(){
-            	self.element.animate(
-            			{cx:cx,cy:cy},
-            			tinyDiff
-            		);
-            },2400);
-
-    		//this.element.animate({cx:cx,cy:cy},tinyDiff);
+    		this._standbyAtCenter();
     	}
-    	//,callback:this.hide();
+    },
+    _standbyAtEdge:function(){
+    	this.element
+    	 = this._paper.path(this.edgeStandby).attr(
+    			 {"stroke-width" : halook.hdfs.constants.blockTransfer.width}
+    	 	);
+    },
+    _standbyAtCenter:function(){
+    	this.element
+    	 = this._paper.path(this.centerStandby).attr(
+    			 {"stroke-width" : halook.hdfs.constants.blockTransfer.width}
+    		);
+    },
+    animate:function(){
+		var args = this.model.attributes;
+    	if(args.size < 0){
+    		this.element.attr(this._transparency()).animate({
+    			path:this.inTransfer
+    			},halook.hdfs.constants.cycle/8);
+    		var self = this;
+    		setTimeout(function(){
+    			self.element.animate({
+    				path:self.centerStandby
+    			},halook.hdfs.constants.cycle/8,function(){self.element.remove()})
+    		},halook.hdfs.constants.cycle/4);
+    	}else{
+    		var self = this;
+    		setTimeout(function(){
+    			self.element.attr(self._transparency()).animate({
+    				path:self.inTransfer
+    			},halook.hdfs.constants.cycle/8)
+    		},halook.hdfs.constants.cycle/2);
+    		setTimeout(function(){
+    			self.element.animate({
+    				path:self.edgeStandby
+    			},halook.hdfs.constants.cycle/8,function(){self.element.remove()})
+    		},halook.hdfs.constants.cycle/4*3);
+    	}
+    },
+    _transparency:function(size){
+    	var trans = Math.abs(this.model.attributes.size)/
+    					halook.hdfs.constants.blockTransfer.colorThreshold;
+    	var obj = {
+    				"stroke" : "rgba(255,255,255,"+trans+")"
+				};
+    	return obj;
     }
 });

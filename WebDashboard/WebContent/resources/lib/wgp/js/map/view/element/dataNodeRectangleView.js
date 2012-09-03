@@ -1,5 +1,6 @@
 wgp.DataNodeRectangle = Backbone.View.extend({
     initialize:function(argument){
+    	//default initialize
        	_.bindAll();
     	this.center = argument.center;
         this._paper = argument.paper;
@@ -8,24 +9,58 @@ wgp.DataNodeRectangle = Backbone.View.extend({
             return;
         }
         this.id = this.model.get("objectId");
-    	this.model.set({"attributes" : 
-    						{
-    							fill:this.model.get("color"),
-    							stroke:this.model.get("strokeColor")
-    						}
-    					},
-    					{silent:true}
-    	);
-    	this.host = this.model.attributes.host;
-    	this.capacity = this.model.attributes.capacity;
+    	
         this.render();
+    	this.bindEvent();
     },
     render:function(){
-    	this.element = new rotatedRectangle(this.model.attributes, this._paper);
+    	var args = this.model.attributes;
+    	var cos = Math.cos(args.angle);
+    	var sin = Math.sin(args.angle);
+    	var origin = {
+    		x : args.center.x + halook.hdfs.constants.mainCircle.radius * cos
+    				+ args.width * sin/2,
+    		y : args.center.y - halook.hdfs.constants.mainCircle.radius * sin
+    				+ args.width * cos/2
+    	};
+    	
+    	var topEdge = {
+    		x :  -args.width * sin,
+    		y : -args.width * cos
+    	};
+
+    	var leftEdge = {
+    		x :  args.height * cos,
+    		y : -args.height * sin
+    	};
+    	var usage = parseInt(this.model.attributes.height / this.model.attributes.capacity * 100);
+    	var status = halook.hdfs.constants.dataNode.status.good;
+    	if(usage > 85){
+    		status = halook.hdfs.constants.dataNode.status.full;
+    	}else if(usage == 0){
+    		status = halook.hdfs.constants.dataNode.status.dead;
+    	}
+    	this.element = this._paper.path(
+    			[
+    			 ["M", origin.x, origin.y],
+    			 ["l", topEdge.x, topEdge.y],
+    			 ["l", leftEdge.x, leftEdge.y],
+    			 ["l", -topEdge.x, -topEdge.y],
+    			 ["Z"]
+    			]).attr({
+    				"fill" : this._statusColor(status),
+    				"stroke" : halook.hdfs.constants.dataNode.frameColor
+    			});
+    },
+    bindEvent:function(){
     	var self = this;
-    	var usage = parseInt(this.model.attributes.height / this.capacity * 100);
-    	this.element.object.mouseover(function (){
-    		$("#nodeStatusBox").html("host : "+self.host+"<br>capacity : "+self.capacity+"<br>usage : "+usage+"%");
+    	var usage = parseInt(this.model.attributes.height / this.model.attributes.capacity * 100);
+    	this.element.mouseover(function (){
+    		$("#nodeStatusBox").html(
+    				"host : "+self.model.attributes.host+
+    				"<br>capacity : "+self.model.attributes.capacity+
+    				"<br>usage : "+usage+"%"
+    		);
     		$("#nodeStatusBox").css("display","block");
     		$("#nodeStatusBox").css("top",parseInt(this.attrs.path[0][2]+50));
     		$("#nodeStatusBox").css("left",parseInt(this.attrs.path[0][1]+50));
@@ -33,34 +68,23 @@ wgp.DataNodeRectangle = Backbone.View.extend({
     		$("#nodeStatusBox").css("color","#222222");
     		$("#nodeStatusBox").css("z-index",100);    		
     	});
-    	this.element.object.mouseout(function (){
+    	this.element.mouseout(function (){
     		$("#nodeStatusBox").css("display","none");
     	});
-    	//this.glow = this.element.object.glow({width:20,color:"#fff",opacity:0.3});
     },
     update:function(model){
-    	this.element.setAttributes(model);
-    	this.model.set({"attributes" : 
-				{
-					fill:this.model.get("color"),
-					stroke:this.model.get("strokeColor")
-				}
-    		},
-    		{silent:true}
-    	);
-    	
-    	if(this.model.attributes.diff < 0){
-        	this.element.object.hide();
-        	this.hide();
-    		this.render();
+        if(this.model.attributes.diff < 0){
+        	this.element.hide();
+        	this.element.remove();
+        	this.render();
     	}else{
     		var self = this;
             setTimeout(function(){
-            	self.element.object.hide();
-            	self.hide();
+            	self.element.hide();
             	self.render();
-            },4900);
+            },halook.hdfs.constants.cycle*0.625);
     	}
+    	this.bindEvent();
     },
     hide:function(){
         //this.glow.remove();
@@ -70,5 +94,14 @@ wgp.DataNodeRectangle = Backbone.View.extend({
         this.element.object.remove();
         //this.glow.remove();
         this.element.hide();
+    },
+    _statusColor:function(status){
+    	if(status == halook.hdfs.constants.dataNode.status.good){
+    		return halook.hdfs.constants.dataNode.color.good;
+    	}else if(status == halook.hdfs.constants.dataNode.status.full){
+    		return halook.hdfs.constants.dataNode.color.full;
+    	}else{
+    		return halook.hdfs.constants.dataNode.color.dead;    		
+    	}
     }
 });
