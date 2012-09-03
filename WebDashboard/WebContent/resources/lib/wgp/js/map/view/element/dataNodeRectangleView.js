@@ -39,18 +39,28 @@ wgp.DataNodeRectangle = Backbone.View.extend({
     	//this.glow = this.element.object.glow({width:20,color:"#fff",opacity:0.3});
     },
     update:function(model){
-    	this.element.object.hide();
-    	this.hide();
     	this.element.setAttributes(model);
     	this.model.set({"attributes" : 
-		{
-			fill:this.model.get("color"),
-			stroke:this.model.get("strokeColor")
-		}
-	},
-	{silent:true}
-);
-    	this.render();
+				{
+					fill:this.model.get("color"),
+					stroke:this.model.get("strokeColor")
+				}
+    		},
+    		{silent:true}
+    	);
+    	
+    	if(this.model.attributes.diff < 0){
+        	this.element.object.hide();
+        	this.hide();
+    		this.render();
+    	}else{
+    		var self = this;
+            setTimeout(function(){
+            	this.element.object.hide();
+            	this.hide();
+            	self.render();
+            },2400);
+    	}
     },
     hide:function(){
         //this.glow.remove();

@@ -355,7 +355,8 @@ HDFSConstants.rack.colors = ["#666666","#AAAAAA","#CCCCCC"];
 							    id : dnIdManager.find(dataFromServer.data[i].host),
 							    height : dataFromServer.data[i].used,
 							    color : nodeColor(status),
-							    strokeColor : nodeColor(status)
+							    strokeColor : nodeColor(status),
+							    diff : diff[i]
 						};
 					}
 				}
