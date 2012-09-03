@@ -1,5 +1,6 @@
 wgp.BlockTransferAnimation = Backbone.View.extend({
     initialize:function(argument){
+    	console.log("init");
        	_.bindAll();
         this._paper = argument.paper;
         if (this._paper == null) {
@@ -11,15 +12,36 @@ wgp.BlockTransferAnimation = Backbone.View.extend({
         this.animate();
     },
     render:function(){
-    	var cx = this.model.attributes.centerX + 
+    	var orginal = {
+    			x : this.model.attributes.centerX + 
     				this.model.attributes.radius * 
-    				Math.cos(this.model.attributes.angle);
-    	var cy = this.model.attributes.centerY - 
+		    		Math.cos(this.model.attributes.angle) + 
+		    		HDFSConstants.blockTransfer.width * 
+		    		Math.cos(this.model.attributes.angle - Math.PI / 2),
+		    	y : this.model.attributes.centerY - 
     				this.model.attributes.radius * 
-    				Math.sin(this.model.attributes.angle);
-    	var size = Math.abs(this.model.attributes.size);
-    	var color = this.model.attributes.color.inward;
+    				Math.sin(this.model.attributes.angle) + 
+    				HDFSConstants.blockTransfer.width * 
+    				Math.sin(this.model.attributes.angle - Math.PI / 2)
+    	};
     	
+    	var topEdge = {
+    			x : HDFSConstants.blockTransfer.width * 
+    				Math.cos(this.model.attributes.angle + Math.PI / 2),
+    			y : HDFSConstants.blockTransfer.width * 
+    				Math.cos(this.model.attributes.angle + Math.PI / 2)
+    	}
+    	
+    	var leftEdge = {
+    			x : -this.model.attributes.radius * 
+    				Math.cos(this.model.attributes.angle),
+    			y : -this.model.attributes.radius * 
+					Math.sin(this.model.attributes.angle)
+    	}
+    	
+    	//var size = Math.abs(this.model.attributes.size);
+    	//var color = this.model.attributes.color.inward;
+
     	if(this.model.attributes.size > 0){
     		cx = this.model.attributes.centerX;
     		cy = this.model.attributes.centerY;
@@ -34,6 +56,8 @@ wgp.BlockTransferAnimation = Backbone.View.extend({
     	//this.glow = this.element.glow({width:20,color:"#fff",opacity:0.3});
     },
     update:function(model){
+    	console.log("update");
+
     	this.element.hide();
     	this.render();
     	this.animate();
@@ -48,8 +72,8 @@ wgp.BlockTransferAnimation = Backbone.View.extend({
 		var tinyDiff = 2500;
     	if(this.model.attributes.size < 0){
     		this.element.animate(
-    				{cx:viewAttr.centerX,cy:viewAttr.centerY},
-    				tinyDiff
+	    				{cx:viewAttr.centerX,cy:viewAttr.centerY},
+	    				tinyDiff
     				);
     	}else{
         	var cx = viewAttr.centerX + 

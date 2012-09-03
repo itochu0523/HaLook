@@ -37,6 +37,7 @@ var appView = new wgp.AppView();
 <script src="<%= request.getContextPath()%>/resources/js/HDFSView/HDFSView/HDFSView.js"></script>
 <script src="<%= request.getContextPath()%>/resources/js/HDFSView/HDFSModel/HDFSModel.js"></script>
 <script src="<%= request.getContextPath()%>/resources/js/HDFSView/testData.js"></script>
+<script src="<%= request.getContextPath()%>/resources/js/utility/utility.js"></script>
 <script src="/WebDashboard/resources/js/common/user.js" type="text/javaScript"></script>
 
 <script>

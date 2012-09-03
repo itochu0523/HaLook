@@ -24,84 +24,55 @@
  * SOFTWARE.
  ******************************************************************************/
 
-
-HDFSView = wgp.AbstractView.extend({
-    initialize:function(argument){ 
-
 ////////////////////////////////////////////////////////////
 //option start
 ////////////////////////////////////////////////////////////
-HDFSConstants = {};
+halook = {};
+halook.hdfs = {};
+halook.hdfs.constants = {};
 
-HDFSConstants.bgColor = "#303232";
+halook.hdfs.constants.bgColor = "#303232";
 
-HDFSConstants.mainCircle = {};
-HDFSConstants.mainCircle.size = 350;
-HDFSConstants.mainCircle.innerRate = 0.2;
-HDFSConstants.mainCircle.transferLineColor = "#EEEEEE";
+halook.hdfs.constants.mainCircle = {};
+halook.hdfs.constants.mainCircle.radius = 150;
+halook.hdfs.constants.mainCircle.innerRate = 0.2;
+halook.hdfs.constants.mainCircle.transferLineColor = "#EEEEEE";
 
-HDFSConstants.dataNode = {};
-HDFSConstants.dataNode.frameColor = "#FFFFFF";
-HDFSConstants.dataNode.color = {
+halook.hdfs.constants.dataNode = {};
+halook.hdfs.constants.dataNode.frameColor = "#FFFFFF";
+halook.hdfs.constants.dataNode.color = {
 									good : "#0C80A0",
 									full : "#F09B4A",
 									dead : "#AE1E2F"
 								};
 
-HDFSConstants.blockTransfer = {};
-HDFSConstants.blockTransfer.color = {inward : "#0C80A0", outward : "#0C80A0"};
+halook.hdfs.constants.blockTransfer = {};
+halook.hdfs.constants.blockTransfer.width = 4;
+halook.hdfs.constants.blockTransfer.color = {inward : "#0C80A0", outward : "#0C80A0"};
 
-HDFSConstants.rack = {};
-HDFSConstants.rack.height = 10;
-HDFSConstants.rack.colors = ["#666666","#AAAAAA","#CCCCCC"];
+halook.hdfs.constants.rack = {};
+halook.hdfs.constants.rack.height = 10;
+halook.hdfs.constants.rack.colors = ["#666666","#AAAAAA","#CCCCCC"];
 ////////////////////////////////////////////////////////////
 //option end
 ////////////////////////////////////////////////////////////
+halook.hdfs.constants.dataNode.status = {};
+halook.hdfs.constants.dataNode.status.good = 0;
+halook.hdfs.constants.dataNode.status.full = 1;
+halook.hdfs.constants.dataNode.status.dead = 2;
 
-		HDFSConstants.dataNode.status = {};
-		HDFSConstants.dataNode.status.good = 0;
-		HDFSConstants.dataNode.status.full = 1;
-		HDFSConstants.dataNode.status.dead = 2;
 
-		//largen area
-		$("#contents_area_0").css("height",700);
-		
-		//hidden div for data node info popup 
-		$("#" + this.$el.attr("id")).parent().prepend('<div id="nodeStatusBox" style="padding:10px; color:white; position:absolute; border:white 2px dotted; display:none"></div>');
-    	
-		//slider on the top
-    	$("#" + this.$el.attr("id")).parent().prepend('<div id="jquery-ui-slider" style="width:600px; margin:15px;clear:left;"></div>');
-    	$('#jquery-ui-slider').slider({
-    		min: 0,
-    		max: 100,
-    		value : 100,
-    		change: function(event, ui){
-       			stopAnimation();
-       		    if(ui.value == 100){
-    				restartAnimation();
-    			}else{
-    				drawStaticDataNode(); 
-    			}
-    		}
-    	});
-    	
-    	$("#" + this.$el.attr("id")).css("background-color",HDFSConstants.bgColor);    	
-    	this.viewType = wgp.constants.VIEW_TYPE.VIEW;
-    	this.collection = new MapElementList();
-		if(argument["collection"]){
-	    	this.collection = argument["collection"];
-		}
 
-		var uniqueId = -1;
-		function getUniqueId(){
-			uniqueId++;
-			return uniqueId;
-		}
-		
+
+
+HDFSView = wgp.AbstractView.extend({
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+    initialize:function(argument){
+		//vars
+    	//set view size
     	this.width = argument["width"];
     	this.height = argument["height"];
-    	this.maxId = 0;
-    	
         var realTag = $("#" + this.$el.attr("id"));
         if (this.width == null) {
             this.width = realTag.width();
@@ -110,335 +81,111 @@ HDFSConstants.rack.colors = ["#666666","#AAAAAA","#CCCCCC"];
             this.height = realTag.height();
         }
 
+        //setting view type
+        this.viewType = wgp.constants.VIEW_TYPE.VIEW;
+        
+        //init collection
+    	this.collection = new MapElementList();
+		if(argument["collection"]){
+	    	this.collection = argument["collection"];
+		}
+        
+        //init view collection
         this.viewCollection = {};
+        
+        //bind event
 		this.registerCollectionEvent();
-		this.render();		
-		
-////////////////////////////////////////////////////////////
-//init of the views in HDFSView
-////////////////////////////////////////////////////////////
-		//vars
-		var center = {x : viewArea2.width/2, y : viewArea2.height/2};
-		var numDataNode = dataFromServer.data.length;		
-		var dataNodeChangeType = wgp.constants.CHANGE_TYPE.ADD;
-		var blockTransferChangeType = wgp.constants.CHANGE_TYPE.ADD;
-		var anglePart = toRadian(360/numDataNode);
-		var radius = HDFSConstants.mainCircle.size/2;
-		var width = HDFSConstants.mainCircle.size * Math.PI / numDataNode;
-		var numRackColors = HDFSConstants.rack.colors.length;
-		
-		var currentDN = [];
-		var diff = [];
-		
-		
-		//function in order to give each view unique id
-		function outer(){
-		    var x = -1;
-		    return　function (){
-		        x = x + 1;
-		    	return x;
-		    };
+    	
+    	//init ids for view on this view
+    	this.maxId = 0;
+    	this.nextId = 0;
 
-		}
-		var getUniqueId = outer();
-		var nextId = 0;
-		
-		//obj in order to manage relation between id numbers with dn
-		var dnIdManager = {
-				ids : [],
-				add : function (number, host){
-					this.ids[host] = number;
-				},
-				remove : function (host){
-					delete(this.ids[number]);
-				},
-				find : function (host){
-					return this.ids[host];
-				}
-		};
-		
+    	//data node
+    	this.numberOfDataNode = dataFromServer.data.length;		
+    	this.dataNodeBarWidth = halook.hdfs.constants.mainCircle.radian * 2 * Math.PI / this.numberOfDataNode;
+    	this.dataNodeChangeType = wgp.constants.CHANGE_TYPE.ADD;
 
-		//obj in order to manage relation between id numbers with bt
-		var btIdManager = {
-				ids : [],
-				add : function (number, host){
-					this.ids[host] = number;
-				},
-				remove : function (host){
-					delete(this.ids[number]);
-				},
-				find : function (host){
-					return this.ids[host];
-				}
-		};
+    	//base numbers for drawing
+    	this.center = {x : viewArea2.width/2, y : viewArea2.height/2 - 70};
+    	this.angleUnit = utility.toRadian(360/this.numberOfDataNode);
+    	
+    	//block transfer
+    	this.blockTransferChangeType = wgp.constants.CHANGE_TYPE.ADD;
+    	
+    	//id manager
+    	this._initIdManager();
+    	
+    	//rack
+    	this.numberOfRackColors = halook.hdfs.constants.rack.colors.length;
+    	
+    	//data from server
+		this.receivedData = [];
+    	
+		//drawing
+		//set bg color and height
+		this._initView();
+		
+		//set paper
+		this.render();
 
+		//static objects
+		this._staticRender();
 		
-		//function to get radian value from angle
-		function toRadian(angle){
-			return angle * Math.PI / 180;
-		}
+		//add slider
+		this._addSlider();
 		
-		//function to decide color o data node bar, depending on nodes status
-		function nodeColor(status){
-			if(status == HDFSConstants.dataNode.status.good){
-				return HDFSConstants.dataNode.color.good;
-			}else if(status == HDFSConstants.dataNode.status.full){
-				return HDFSConstants.dataNode.color.full;
-			}else{
-				return HDFSConstants.dataNode.color.dead;
-			}
-		}
+		//add div for data node status popup
+		this._addStatusPopup();
 		
-		//function to stop animation and hide transfer ball when slider event occurs
-		function stopAnimation(){
-			clearInterval(timerDn);
-			clearInterval(timerBt);
-		}
+		//add div for cluster status
+		this._addClusterStatus();
 		
-		function restartAnimation(){
-			var timerDn = setInterval(dataNodeInterval("contents_area_0"),5000);
-			var timerBt = setInterval(blockTransferInterval("contents_area_0"),5000);
-		}
+		//prepare for animation
+		//block transfer
+		this._setBlockTransferLoop(this);
+		//data node
+		this._setDataNodeLoop(this);
 		
-		function drawStaticDataNode(){
-			///////temporary function: renew input data
-			setDataFromServer();
-			///////temporary function: renew input data									
-			setTimeout(dataNodeInterval("contents_area_0"),500);			
-		}
-////////////////////////////////////////////////////////////
-//static views
-////////////////////////////////////////////////////////////
-		
-		for(var i=0; i<numDataNode; i++){
-			var pathString = "M"+center.x+","+center.y
-								+" L"+(center.x+radius*Math.cos(anglePart*i))
-								+","+(center.y+radius*Math.sin(anglePart*i))
-								+" Z";
-			this.paper.path(pathString).attr({
-				"stroke-width" : 2,
-			    "stroke" : HDFSConstants.mainCircle.transferLineColor
-				});
-		}
-
+		//launch animation
+		this._launchAnimation();
+    },
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+    _staticRender:function(){
+		//drawing static object
+    	//core circle (name node)
 		this.paper.circle(
-				center.x,
-				center.y,
-				HDFSConstants.mainCircle.size/2 * HDFSConstants.mainCircle.innerRate
+				this.center.x,
+				this.center.y,
+				halook.hdfs.constants.mainCircle.radius * halook.hdfs.constants.mainCircle.innerRate
 			).attr({
-			    "fill" : HDFSConstants.dataNode.color.good,
-			    "stroke" : HDFSConstants.dataNode.color.good
+			    "fill" : halook.hdfs.constants.dataNode.color.good,
+			    "stroke" : halook.hdfs.constants.dataNode.color.good
 			});
-		
-		var rack = [];
-		var rackOfLastHost = "";
-		var index = 0;
-		for(var i=0; i<numDataNode; i++){
-			nextId = getUniqueId();
-			
-			if(rackOfLastHost != dataFromServer.data[i].rack){
-				index++;
-				index = index%numRackColors;
-				rackOfLastHost = dataFromServer.data[i].rack;
-			}
-			rack[i] = {
-				    type:dataNodeChangeType,
-				    objectName:"DataNodeRectangle",
-				    objectId : nextId,
-				    id : nextId,
-				    width : width,
-				    height : HDFSConstants.rack.height,
-				    angle : anglePart*i,
-				    zIndex : 2,
-				    centerX : center.x,
-				    centerY : center.y,
-				    radius : radius-HDFSConstants.rack.height,
-				    host : dataFromServer.data[i].host,
-				    color : HDFSConstants.rack.colors[index],
-				    strokeColor : HDFSConstants.rack.colors[index]
-			};
-		}
-		
-		for(var i=0; i<numDataNode; i++){
-			var capacity = dataFromServer.data[i].capacity;
-			this.paper.path([
-			                 [
-			                  "M",
-			                  center.x + radius * Math.cos(anglePart*i) + width * Math.cos(anglePart*i-Math.PI/2) / 2,
-			                  center.y - radius * Math.sin(anglePart*i) - width * Math.sin(anglePart*i-Math.PI/2) / 2
-			                 ],
-			                 [
-			                  "l",
-			                  capacity * Math.cos(anglePart*i),
-			                  -capacity * Math.sin(anglePart*i)
-			                 ],
-			                 [
-			                  "l",
-			                  width * Math.cos(anglePart*i+Math.PI/2),
-			                  -width * Math.sin(anglePart*i+Math.PI/2) 
-			                 ],
-			                 [
-			                  "l",
-			                  -capacity * Math.cos(anglePart*i),
-			                  capacity * Math.sin(anglePart*i)
-			                 ]
-			                ]).attr({
-			                	stroke : HDFSConstants.dataNode.frameColor
-			                });
-		}
 
+		//data node capacity bars
+		this._drawCapacity();
+
+		//rack 
+		/*
 		var mainCircleInterval = function(windowId){
 			function innerFunction(){
-				var addData = [{
-				    windowId:windowId,
-				    data:rack
-				}];
-				appView.notifyEvent(addData);
+				this._notifyToThisView(this.rackMarker)
 			};
 			return innerFunction;
 		};
-
-////////////////////////////////////////////////////////////
-//dynamic views
-////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////
-//data node
-////////////////////////////////////////////////////////////
-		var dataNodeInterval = function(windowId){
-			function innerFunction(){
-				///////temporary function: renew input data
-				setDataFromServer();
-				///////temporary function: renew input data									
-				if(dataNodeChangeType == wgp.constants.CHANGE_TYPE.ADD){
-					for(var i=0; i<numDataNode; i++){
-						nextId = getUniqueId();
-						var status = 0;
-						if(dataFromServer.data[i].capacity*0.9 < dataFromServer.data[i].used){
-							status = HDFSConstants.dataNode.status.full;
-						}else if(dataFromServer.data[i].used == 0){
-							status = HDFSConstants.dataNode.status.dead;						
-						}
-						currentDN[i] = {
-							    type:dataNodeChangeType,
-							    objectName:"DataNodeRectangle",
-							    objectId : nextId,
-							    id : nextId,
-							    width : width,
-							    height : dataFromServer.data[i].used,
-							    angle : anglePart*i,
-							    zIndex : 0,
-							    centerX : center.x,
-							    centerY : center.y,
-							    radius : radius,
-							    host : dataFromServer.data[i].host,
-							    capacity : dataFromServer.data[i].capacity,
-							    color : nodeColor(status),
-							    strokeColor : nodeColor(status)
-						};
-						dnIdManager.add(nextId,currentDN[i].host);
-					}
-					dataNodeChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
-				}else{
-					for(var i=0; i<numDataNode; i++){
-						diff[i] = dataFromServer.data[i].used - currentDN[i].height;
-						var status = 0;
-						if(dataFromServer.data[i].capacity*0.9 < dataFromServer.data[i].used){
-							status = HDFSConstants.dataNode.status.full;
-						}else if(dataFromServer.data[i].used == 0){
-							status = HDFSConstants.dataNode.status.dead;						
-						}
-						
-						currentDN[i] = {
-							    type:dataNodeChangeType,
-							    objectId : dnIdManager.find(dataFromServer.data[i].host),
-							    id : dnIdManager.find(dataFromServer.data[i].host),
-							    height : dataFromServer.data[i].used,
-							    color : nodeColor(status),
-							    strokeColor : nodeColor(status),
-							    diff : diff[i]
-						};
-					}
-				}
-				var addData = [{
-				    windowId:windowId,
-				    data:currentDN
-				}];
-				appView.notifyEvent(addData);
-				/////////////////////////////
-				/////////////////////////////
-				//write codes of when the number of data node has changed
-				/////////////////////////////
-				/////////////////////////////
-			};
-			return innerFunction;
-		};
+		*/
+		//rack
 		
-		
-////////////////////////////////////////////////////////////
-//block transfer
-////////////////////////////////////////////////////////////
-		var transfer = [];
-		
-		var blockTransferInterval = function(windowId){
-			function innerFunction(){
-				if(diff.length > 0){
-					if(blockTransferChangeType == wgp.constants.CHANGE_TYPE.ADD){
-						for(var i=0; i<numDataNode; i++){
-							nextId = getUniqueId();
-							transfer[i] = {
-								    type:blockTransferChangeType,
-								    objectName:"BlockTransferAnimation",
-								    objectId : nextId,
-								    id : nextId,
-								    size : diff[i],
-								    zIndex : 0,
-								    centerX : center.x,
-								    centerY : center.y,
-								    radius : radius + Math.abs(diff[i]),
-								    color : HDFSConstants.blockTransfer.color,
-									angle : anglePart*i
-							}
-							btIdManager.add(nextId,dataFromServer.data[i].host);
-							//console.log(transfer);
-						}
-						blockTransferChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
-					}else{
-						for(var i=0; i<numDataNode; i++){
-							transfer[i] = {
-								    type:blockTransferChangeType,
-								    objectId : btIdManager.find(dataFromServer.data[i].host),
-								    id : btIdManager.find(dataFromServer.data[i].host),
-								    size : diff[i],
-								    radius : radius + Math.abs(diff[i]),
-							}
-						}
-					}
-					var addData = [{
-					    windowId:windowId,
-					    data:transfer
-					}];
-					appView.notifyEvent(addData);
-				}
-			};
-			return innerFunction;
-		};
-		
-		var timerMc = setTimeout(mainCircleInterval("contents_area_0"),5);
-		var timerDnInit = setTimeout(dataNodeInterval("contents_area_0"),10);
-		var timerDn = setInterval(dataNodeInterval("contents_area_0"),5000);
-		var timerBt = setInterval(blockTransferInterval("contents_area_0"),5000);
-
     },
-    
-    
-    
-    
-    
-    
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
     render:function(){
+    	//set paper
         this.paper =  new Raphael(document.getElementById(this.$el.attr("id")), this.width, this.height);    	
     },
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
     onAdd:function(mapElement){
     	var id = mapElement.id;
 		if(id == null){
@@ -461,15 +208,357 @@ HDFSConstants.rack.colors = ["#666666","#AAAAAA","#CCCCCC"];
 		var objectName = "wgp." + mapElement.get("objectName");
     	var view = eval("new " + objectName + "({model:mapElement, paper:this.paper})");
     	this.viewCollection[id] = view;
-
     },
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 	onChange:function(mapElement){
 		this.viewCollection[mapElement.id].update(mapElement);
 	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
 	onRemove:function(mapElement){
 		var objectId = mapElement.get("objectId");
 		this.viewCollection[objectId].remove(mapElement);
 		delete this.viewCollection[objectId];
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_initView:function(){
+		//enlarge area
+		$("#contents_area_0").css("height",600);
+		
+    	//set bg olor
+    	$("#"+this.$el.attr("id")).parent().css("background-color",halook.hdfs.constants.bgColor);  	
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_addSlider:function(){
+    	//slider on the top
+    	$("#"+this.$el.attr("id")).parent().prepend(
+    			'<div id="slider" '+
+    			'style="width:800px; margin:15px;">'+
+    			'</div>'
+    		);
+    	
+    	//area to show slider value
+	    $("#"+this.$el.attr("id")).parent().prepend(
+	    		'<div '+
+	    		'style="color:white; margin:15px 0px 0px 15px;">'+
+	    		'<b id="sliderValue">Real time view</b>'+
+	    		'</div>'
+	    	);
+	    
+	    //set slider option and event
+    	$('#slider').slider({
+    		min: 0,
+    		max: 100,
+    		value : 100,
+    		change: function(event, ui){
+       			this._killAnimation();
+       			
+       		    if(ui.value == 100){
+       		    	$('#sliderValue').html("Real time view");
+    				this._launchAnimation();
+    			}else{
+    				$('#sliderValue').html(ui.value);
+    				this._drawStaticDataNode(); 
+    			}
+    		}
+    	});
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_addStatusPopup:function(){
+		//hidden div for data node info popup 
+		$("#"+this.$el.attr("id")).parent().prepend(
+				'<div id="nodeStatusBox" '+
+				'style="padding:10px; color:white; position:absolute; '+
+				'border:white 2px dotted; display:none">'+
+				'</div>'
+			);
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_addClusterStatus:function(){
+		//div for cluster status
+    	$("#"+this.$el.attr("id")).parent().prepend(
+    			'<div style="background-color:rgba(255,255,255,0.9);">'+
+    			'<h3 style="margin:15px;">'+
+    			'Cluster Status'+
+    			'</h3>'+
+    			'<div id="clusterStatus" '+
+    			'style="padding:0 10px 10px 10px;">'+
+    			'total capacity : 1TB, name node : 100, data node : 100'+
+    			'</div>'+
+    			'</div>'
+    		);		
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_launchAnimation:function(){
+		//start animation in real time mode
+		var self = this;
+		setTimeout(self.dataNodeInterval("contents_area_0"),10);
+		setTimeout(self.blockTransferInterval("contents_area_0"),10);
+		this.timerDn = setInterval(self.dataNodeInterval("contents_area_0"),5000);
+		this.timerBt = setInterval(self.blockTransferInterval("contents_area_0"),5000);
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_killAnimation:function(){
+		//stop animation
+		clearInterval(this.timerDn);
+		clearInterval(this.timerBt);
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_drawStaticDataNode:function(){
+		//draw static data node bar when the slider value is set to past date
+		///////temporary function: renew input data
+		setDataFromServer();
+		///////temporary function: renew input data									
+		setTimeout(this.dataNodeInterval("contents_area_0"),100);
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_setBlockTransferLoop:function(self){
+		self.transfer = [];
+		
+		self.blockTransferInterval = function(windowId){
+			function innerFunction(){
+				//actual process to loop
+				if(self.blockTransferChangeType == wgp.constants.CHANGE_TYPE.ADD){
+					self._addBlockTransfer(self);
+					self.blockTransferChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
+				}else{
+					//self._updateBlockTransfer();
+				}
+				console.log(self);
+				var addData = [{
+					windowId:windowId,
+					data:self.transfer
+				}];
+				appView.notifyEvent(addData);
+			}
+			return innerFunction;
+		};
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_addBlockTransfer:function(self){
+		console.log(self);
+		for(var i=0; i<self.numberOfDataNode; i++){
+			self.transfer[i] = {};
+			self.nextId = self._getUniqueId();
+			self.transfer[i].objectId 
+				= self.transfer[i].id 
+					= self.nextId;
+			self.transfer[i].size = 4;//self.diff[i];
+			self.transfer[i].angle = self.angleUnit*i,
+
+			self.blockTransferIdManager.add(self.nextId,dataFromServer.data[i].host);
+		}
+		_.each(self.transfer, function(){
+			this.type = wgp.constants.CHANGE_TYPE.ADD;
+			this.objectName = "BlockTransferAnimation";
+			this.center = self.center;
+		});
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_updateBlockTransfer:function(self){
+		for(var i=0; i<self.numberOfDataNode; i++){
+			self.transfer[i].objectId
+				= self.transfer[i].id 
+					= self.blockTransferIdManager.find(dataFromServer.data[i].host);
+			self.transfer[i].size = 6;//diff[i];
+		}
+		_.each(self.transfer,function(){
+			this.type = self.blockTransferChangeType;
+		});		
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_setDataNodeLoop:function(self){
+		self.currentDataNode = [];
+		
+		self.dataNodeInterval = function(windowId){
+			function innerFunction(){
+				///////temporary function: renew input data
+				setDataFromServer();
+				///////temporary function: renew input data									
+				if(self.dataNodeChangeType == wgp.constants.CHANGE_TYPE.ADD){
+					self._addDataNode(self);
+					dataNodeChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
+				}else{
+					self._updateDataNode(self);
+				}
+				var addData = [{
+				    windowId:windowId,
+				    data:self.currentDataNode
+				}];
+				appView.notifyEvent(addData);
+			};
+			return innerFunction;
+		};
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_addDataNode:function(self){
+		for(var i=0; i<self.numberOfDataNode; i++){
+			self.nextId = self._getUniqueId();
+			var status = 0;
+			if(dataFromServer.data[i].capacity*0.9 < dataFromServer.data[i].used){
+				status = halook.hdfs.constants.dataNode.status.full;
+			}else if(dataFromServer.data[i].used == 0){
+				status = halook.hdfs.constants.dataNode.status.dead;						
+			}
+			
+			self.currentDataNode[i] = {
+				    objectId : self.nextId,
+				    id : self.nextId,
+				    width : self.dataNodeWidth,
+				    height : dataFromServer.data[i].used,
+				    angle : self.angleUnit*i,
+				    host : dataFromServer.data[i].host,
+				    capacity : dataFromServer.data[i].capacity,
+				    status : status,
+				    type:wgp.constants.CHANGE_TYPE.ADD,
+				    objectName:"DataNodeRectangle",
+				    center : self.center
+			};
+		    self.dataNodeIdManager.add(self.nextId,dataFromServer.data[i].host);
+		}
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_updateDataNode:function(self){
+		for(var i=0; i<self.numberOfDataNode; i++){
+			self.diff[i] = dataFromServer.data[i].used - receivedData[i].height;
+			var status = 0;
+			if(dataFromServer.data[i].capacity*0.9 < dataFromServer.data[i].used){
+				status = halook.hdfs.constants.dataNode.status.full;
+			}else if(dataFromServer.data[i].used == 0){
+				status = halook.hdfs.constants.dataNode.status.dead;						
+			}
+			
+			self.currentDataNode[i] = {
+				    type:constants.CHANGE_TYPE.UPDATE,
+				    objectId : self.dataNodeIdManager.find(dataFromServer.data[i].host),
+				    id : self.dataNodeIdManager.find(dataFromServer.data[i].host),
+				    height : dataFromServer.data[i].used,
+				    status : status,
+				    diff : diff[i]
+			};
+		}
+		self.receivedData = dataFromServer.data;
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_getUniqueId:function(){
+		//return next id
+		var x = this.maxId + 1;
+		return x;
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_drawCapacity:function(){
+		//prepare temporary vars in order to make codes readable
+		var r = halook.hdfs.constants.mainCircle.radius;
+		var w = this.dataNodeBarWidth;
+		
+		for(var i=0; i<this.numberOfDataNode; i++){
+			//prepare temporary vars in order to make codes readable
+			var capacity = dataFromServer.data[i].capacity;
+			var cos = Math.cos(this.angleUnit*i);
+			var sin = Math.sin(this.angleUnit*i);
+			var c = this.center;
+
+			//actual process
+			this.paper.path([
+				 ["M", (c.x + r*cos + w/2*sin), (c.y - r*sin - w/2*sin)],
+				 ["l", (capacity*cos), (-capacity*sin)],
+				 ["l", (-w*sin), (w* cos)],
+				 ["l", (-capacity*cos), (capacity*sin)]
+			]).attr({
+				stroke : halook.hdfs.constants.dataNode.frameColor
+			});
+		}
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+/*
+	_drawRack:function(){
+		var rack = [];
+		var rackOfLastHost = "";
+		var index = 0;
+		for(var i=0; i<numDataNode; i++){
+			nextId = getUniqueId();
+			
+			if(rackOfLastHost != dataFromServer.data[i].rack){
+				index++;
+				index = index%numRackColors;
+				rackOfLastHost = dataFromServer.data[i].rack;
+			}
+			rack[i] = {
+				    type:dataNodeChangeType,
+				    objectName:"DataNodeRectangle",
+				    objectId : nextId,
+				    id : nextId,
+				    width : width,
+				    height : halook.hdfs.constants.rack.height,
+				    angle : anglePart*i,
+				    zIndex : 2,
+				    centerX : center.x,
+				    centerY : center.y,
+				    radius : radius-halook.hdfs.constants.rack.height,
+				    host : dataFromServer.data[i].host,
+				    color : halook.hdfs.constants.rack.colors[index],
+				    strokeColor : halook.hdfs.constants.rack.colors[index]
+			};
+		}		
+	},*/
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_initIdManager:function(){
+		//id manager prototype
+		function IdManager(){
+				this.ids = [];
+				this.add = function (number, host){
+					this.ids[host] = number;
+				};
+				this.remove = function (host){
+					delete(this.ids[number]);
+				};
+				this.find = function (host){
+					return this.ids[host];
+				};
+		}
+
+		//obj in order to manage relation between id numbers with data node
+		this.dataNodeIdManager = new IdManager();	
+		//obj in order to manage relation between id numbers with block transfer
+		this.blockTransferIdManager = new IdManager();	
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_getDataNodeColor:function(status){
+		if(status == halook.hdfs.constants.dataNode.status.good){
+			return halook.hdfs.constants.dataNode.color.good;
+		}else if(status == halook.hdfs.constants.dataNode.status.full){
+			return halook.hdfs.constants.dataNode.color.full;
+		}else{
+			return halook.hdfs.constants.dataNode.color.dead;
+		}
+	},
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+	_notifyToThisView:function(data){
+		var addData = [{
+		windowId:windowId,
+		data:data
+		}];
+		appView.notifyEvent(addData);    	
 	}
 });
 

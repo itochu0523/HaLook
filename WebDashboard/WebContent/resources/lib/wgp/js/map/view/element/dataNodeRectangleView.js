@@ -56,10 +56,10 @@ wgp.DataNodeRectangle = Backbone.View.extend({
     	}else{
     		var self = this;
             setTimeout(function(){
-            	this.element.object.hide();
-            	this.hide();
+            	self.element.object.hide();
+            	self.hide();
             	self.render();
-            },2400);
+            },4900);
     	}
     },
     hide:function(){
