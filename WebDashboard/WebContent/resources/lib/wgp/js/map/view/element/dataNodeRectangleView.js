@@ -51,6 +51,7 @@ wgp.DataNodeRectangle = Backbone.View.extend({
     				"fill" : this._statusColor(status),
     				"stroke" : halook.hdfs.constants.dataNode.frameColor
     			});
+    	this.element.toBack();
     },
     bindEvent:function(){
     	var self = this;

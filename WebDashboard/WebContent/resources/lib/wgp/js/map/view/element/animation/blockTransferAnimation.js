@@ -74,25 +74,27 @@ wgp.BlockTransferAnimation = Backbone.View.extend({
     	 = this._paper.path(this.edgeStandby).attr(
     			 {"stroke-width" : halook.hdfs.constants.blockTransfer.width}
     	 	);
+    	this.element.toBack();
     },
     _standbyAtCenter:function(){
     	this.element
     	 = this._paper.path(this.centerStandby).attr(
     			 {"stroke-width" : halook.hdfs.constants.blockTransfer.width}
     		);
+    	this.element.toBack();
     },
     animate:function(){
 		var args = this.model.attributes;
     	if(args.size < 0){
     		this.element.attr(this._transparency()).animate({
     			path:this.inTransfer
-    			},halook.hdfs.constants.cycle/8);
+    			},halook.hdfs.constants.cycle/8,function(){});
     		var self = this;
     		setTimeout(function(){
     			self.element.animate({
     				path:self.centerStandby
     			},halook.hdfs.constants.cycle/8,function(){self.element.remove()})
-    		},halook.hdfs.constants.cycle/4);
+    		},halook.hdfs.constants.cycle/8);
     	}else{
     		var self = this;
     		setTimeout(function(){

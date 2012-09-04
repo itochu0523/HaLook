@@ -41,6 +41,7 @@ halook.hdfs.constants.mainCircle.innerRate = 0.2;
 halook.hdfs.constants.mainCircle.transferLineColor = "#EEEEEE";
 
 halook.hdfs.constants.dataNode = {};
+halook.hdfs.constants.dataNode.maxWidth = 60;
 halook.hdfs.constants.dataNode.frameColor = "rgba(255,255,255,0.5)";
 halook.hdfs.constants.dataNode.color = {
 									good : "#0C80A0",
@@ -107,6 +108,9 @@ HDFSView = wgp.AbstractView.extend({
     	//data node
     	this.numberOfDataNode = dataFromServer.data.length;		
     	this.dataNodeBarWidth = halook.hdfs.constants.mainCircle.radius * 2 * Math.PI / this.numberOfDataNode;
+    	if(this.dataNodeBarWidth > halook.hdfs.constants.dataNode.maxWidth){
+    		this.dataNodeBarWidth = halook.hdfs.constants.dataNode.maxWidth;
+    	}
     	this.dataNodeChangeType = wgp.constants.CHANGE_TYPE.ADD;
 
     	//base numbers for drawing
@@ -118,10 +122,7 @@ HDFSView = wgp.AbstractView.extend({
     	
     	//id manager
     	this._initIdManager();
-    	
-    	//rack
-    	this.numberOfRackColors = halook.hdfs.constants.rack.colors.length;
-    	
+    	    	
     	
 		///////temporary function: renew input data
 		setDataFromServer();
@@ -167,13 +168,23 @@ HDFSView = wgp.AbstractView.extend({
 				halook.hdfs.constants.mainCircle.radius * halook.hdfs.constants.mainCircle.innerRate
 			).attr({
 			    "fill" : halook.hdfs.constants.dataNode.color.good,
-			    "stroke" : halook.hdfs.constants.dataNode.color.good
+			    "stroke" : halook.hdfs.constants.dataNode.frameColor
 			});
 
+		this.paper.circle(
+				this.center.x,
+				this.center.y,
+				halook.hdfs.constants.mainCircle.radius - halook.hdfs.constants.rack.height/2
+			).attr({
+			    "stroke" : halook.hdfs.constants.dataNode.frameColor,
+			    "stroke-width" : halook.hdfs.constants.rack.height/2
+			});
+		
 		//data node capacity bars
 		this._drawCapacity();
 
 		//rack 
+		this._drawRack();
 		/*
 		var mainCircleInterval = function(windowId){
 			function innerFunction(){
@@ -254,21 +265,21 @@ HDFSView = wgp.AbstractView.extend({
 	    		'<b id="sliderValue">Real time view</b>'+
 	    		'</div>'
 	    	);
-	    
+	    var self = this;
 	    //set slider option and event
     	$('#slider').slider({
     		min: 0,
     		max: 100,
     		value : 100,
     		change: function(event, ui){
-       			this._killAnimation();
+       			self._killAnimation();
        			
        		    if(ui.value == 100){
        		    	$('#sliderValue').html("Real time view");
-    				this._launchAnimation();
+       		    	self._launchAnimation();
     			}else{
     				$('#sliderValue').html(ui.value);
-    				this._drawStaticDataNode(); 
+    				self._drawStaticDataNode(); 
     			}
     		}
     	});
@@ -289,12 +300,11 @@ HDFSView = wgp.AbstractView.extend({
 	_addClusterStatus:function(){
 		//div for cluster status
     	$("#"+this.$el.attr("id")).parent().prepend(
-    			'<div style="background-color:rgba(255,255,255,0.9);">'+
+    			'<div style="padding:10px; background-color:rgba(255,255,255,0.9);">'+
     			'<b>'+
     			'Cluster Status : '+
     			'</b>'+
-    			'<span id="clusterStatus" '+
-    			'style="padding:0 10px 10px 10px;">'+
+    			'<span id="clusterStatus">'+
     			'total capacity : 1TB, name node : 100, data node : 100'+
     			'</span>'+
     			'</div>'
@@ -485,37 +495,37 @@ HDFSView = wgp.AbstractView.extend({
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
-/*
 	_drawRack:function(){
-		var rack = [];
-		var rackOfLastHost = "";
-		var index = 0;
-		for(var i=0; i<numDataNode; i++){
-			nextId = getUniqueId();
-			
-			if(rackOfLastHost != dataFromServer.data[i].rack){
-				index++;
-				index = index%numRackColors;
-				rackOfLastHost = dataFromServer.data[i].rack;
+		//prepare temporary vars in order to make codes readable
+		var r = halook.hdfs.constants.mainCircle.radius;
+		var w = this.dataNodeBarWidth;
+		var lastRack = "";
+		var numberOfRackColor = halook.hdfs.constants.rack.colors.length;
+		var colorNo = -1;
+		
+		for(var i=0; i<this.numberOfDataNode; i++){
+			if(lastRack != dataFromServer.data[i].rack){
+				colorNo++;
+				lastRack = dataFromServer.data[i].rack;
 			}
-			rack[i] = {
-				    type:dataNodeChangeType,
-				    objectName:"DataNodeRectangle",
-				    objectId : nextId,
-				    id : nextId,
-				    width : width,
-				    height : halook.hdfs.constants.rack.height,
-				    angle : anglePart*i,
-				    zIndex : 2,
-				    centerX : center.x,
-				    centerY : center.y,
-				    radius : radius-halook.hdfs.constants.rack.height,
-				    host : dataFromServer.data[i].host,
-				    color : halook.hdfs.constants.rack.colors[index],
-				    strokeColor : halook.hdfs.constants.rack.colors[index]
-			};
-		}		
-	},*/
+			//prepare temporary vars in order to make codes readable
+			var h = halook.hdfs.constants.rack.height;
+			var cos = Math.cos(this.angleUnit*i);
+			var sin = Math.sin(this.angleUnit*i);
+			var c = this.center;
+			//actual process
+			this.paper.path([
+				 ["M", (c.x + (r-h)*cos + w/2*sin), (c.y - (r-h)*sin + w/2*cos)],
+				 ["l", (h*cos), (-h*sin)],
+				 ["l", (-w*sin), (-w* cos)],
+				 ["l", (-h*cos), (h*sin)]
+			]).attr({
+				stroke : halook.hdfs.constants.rack.colors[colorNo%numberOfRackColor],
+				fill : halook.hdfs.constants.rack.colors[colorNo%numberOfRackColor]
+			});
+			console.log(halook.hdfs.constants.rack.colors[colorNo%numberOfRackColor]);
+		}
+	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
 	_initIdManager:function(){
