@@ -44,8 +44,8 @@ halook.hdfs.constants.dataNode = {};
 halook.hdfs.constants.dataNode.maxWidth = 60;
 halook.hdfs.constants.dataNode.frameColor = "rgba(255,255,255,0.5)";
 halook.hdfs.constants.dataNode.color = {
-									good : "#0A67A3",
-									full : "#FF8E00s",
+									good : "#0C80A0",
+									full : "#F09B4A",
 									dead : "#AE1E2F"
 								};
 
@@ -123,6 +123,7 @@ HDFSView = wgp.AbstractView.extend({
     	//id manager
     	this._initIdManager();
     	    	
+    	
 		///////temporary function: renew input data
 		setDataFromServer();
 		///////temporary function: renew input data									
@@ -522,6 +523,7 @@ HDFSView = wgp.AbstractView.extend({
 				stroke : halook.hdfs.constants.rack.colors[colorNo%numberOfRackColor],
 				fill : halook.hdfs.constants.rack.colors[colorNo%numberOfRackColor]
 			});
+			console.log(halook.hdfs.constants.rack.colors[colorNo%numberOfRackColor]);
 		}
 	},
 //////////////////////////////////////////////////////////
