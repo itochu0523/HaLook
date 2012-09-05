@@ -36,7 +36,7 @@ halook.hdfs.constants.cycle = 5000;
 halook.hdfs.constants.bgColor = "#303232";
 
 halook.hdfs.constants.mainCircle = {};
-halook.hdfs.constants.mainCircle.radius = 140;
+halook.hdfs.constants.mainCircle.radius = 150;
 halook.hdfs.constants.mainCircle.innerRate = 0.2;
 halook.hdfs.constants.mainCircle.transferLineColor = "#EEEEEE";
 
@@ -45,7 +45,7 @@ halook.hdfs.constants.dataNode.maxWidth = 60;
 halook.hdfs.constants.dataNode.frameColor = "rgba(255,255,255,0.5)";
 halook.hdfs.constants.dataNode.color = {
 									good : "#0A67A3",
-									full : "#FF8E00s",
+									full : "#FF8E00",
 									dead : "#AE1E2F"
 								};
 
@@ -127,6 +127,9 @@ HDFSView = wgp.AbstractView.extend({
 		setDataFromServer();
 		///////temporary function: renew input data									
 
+		//pretreat data
+		this.pretreat(dataFromServer);
+		
 		//drawing
 		//non-raphael elements
 		//add slider
@@ -154,6 +157,18 @@ HDFSView = wgp.AbstractView.extend({
 		
 		//launch animation
 		this._launchAnimation();
+    },
+//////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+    pretreat:function(data){
+    	this.maxCapacity = 0;
+    	this.clusterCapacity = 0;
+    	for(var i=0; i<this.numberOfDataNode; i++){
+    		this.clusterCapacity += data.data[i].capacity;
+    		if(this.maxCapacity < data.data[i].capacity){
+    			this.maxCapacity = data.data[i].capacity;
+    		}
+    	}
     },
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -253,7 +268,7 @@ HDFSView = wgp.AbstractView.extend({
     	//slider on the top
     	$("#"+this.$el.attr("id")).parent().prepend(
     			'<div id="slider" '+
-    			'style="width:800px; margin:15px;">'+
+    			'style="width:800px; margin:15px; opacity:0.7;">'+
     			'</div>'
     		);
     	
@@ -267,6 +282,7 @@ HDFSView = wgp.AbstractView.extend({
 	    var self = this;
 	    //set slider option and event
     	$('#slider').slider({
+    		range: 'min',
     		min: 0,
     		max: 100,
     		value : 100,
@@ -304,7 +320,7 @@ HDFSView = wgp.AbstractView.extend({
     			'Cluster Status : '+
     			'</b>'+
     			'<span id="clusterStatus">'+
-    			'total capacity : 1TB, name node : 100, data node : 100'+
+    			'total capacity : '+this.clusterCapacity+' GB, number of data node : '+this.numberOfDataNode+
     			'</span>'+
     			'</div>'
     		);		
@@ -340,7 +356,7 @@ HDFSView = wgp.AbstractView.extend({
 		///////temporary function: renew input data
 		setDataFromServer();
 		///////temporary function: renew input data									
-		setTimeout(this.dataNodeInterval("contents_area_0"),100);
+		setTimeout(this.dataNodeInterval("contents_area_0",true),100);
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -404,7 +420,7 @@ HDFSView = wgp.AbstractView.extend({
 		self.currentDataNode = [];
 		self.diff = [];
 		
-		self.dataNodeInterval = function(windowId){
+		self.dataNodeInterval = function(windowId,staticMode){
 			function innerFunction(){
 				///////temporary function: renew input data
 				setDataFromServer();
@@ -413,7 +429,7 @@ HDFSView = wgp.AbstractView.extend({
 					self._addDataNode(self);
 					self.dataNodeChangeType = wgp.constants.CHANGE_TYPE.UPDATE;
 				}else{
-					self._updateDataNode(self);
+					self._updateDataNode(self,staticMode);
 				}
 				var addData = [{
 				    windowId:windowId,
@@ -433,7 +449,8 @@ HDFSView = wgp.AbstractView.extend({
 				    objectId : self.nextId,
 				    id : self.nextId,
 				    width : self.dataNodeBarWidth,
-				    height : dataFromServer.data[i].used,
+				    height : dataFromServer.data[i].used / self.maxCapacity * halook.hdfs.constants.mainCircle.radius,
+				    used : dataFromServer.data[i].used,
 				    angle : self.angleUnit*i,
 				    host : dataFromServer.data[i].host,
 				    capacity : dataFromServer.data[i].capacity,
@@ -446,18 +463,20 @@ HDFSView = wgp.AbstractView.extend({
 	},
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
-	_updateDataNode:function(self){
+	_updateDataNode:function(self,staticMode){
 		///////temporary function: renew input data
 		setDataFromServer();
 		///////temporary function: renew input data									
 		for(var i=0; i<self.numberOfDataNode; i++){
-			self.diff[i] = dataFromServer.data[i].used - self.currentDataNode[i].height;
+			self.diff[i] = dataFromServer.data[i].used - self.currentDataNode[i].used;
 			self.currentDataNode[i] = {
 				    type:wgp.constants.CHANGE_TYPE.UPDATE,
 				    objectId : self.dataNodeIdManager.find(dataFromServer.data[i].host),
 				    id : self.dataNodeIdManager.find(dataFromServer.data[i].host),
-				    height : dataFromServer.data[i].used,
-				    diff : self.diff[i]
+				    height : dataFromServer.data[i].used / self.maxCapacity * halook.hdfs.constants.mainCircle.radius,
+				    used : dataFromServer.data[i].used,
+				    diff : self.diff[i],
+				    staticMode : staticMode
 			};
 		}
 	},
@@ -477,7 +496,7 @@ HDFSView = wgp.AbstractView.extend({
 		
 		for(var i=0; i<this.numberOfDataNode; i++){
 			//prepare temporary vars in order to make codes readable
-			var capacity = dataFromServer.data[i].capacity;
+			var capacity = dataFromServer.data[i].capacity / this.maxCapacity * r;
 			var cos = Math.cos(this.angleUnit*i);
 			var sin = Math.sin(this.angleUnit*i);
 			var c = this.center;

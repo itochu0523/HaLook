@@ -11,7 +11,6 @@ wgp.DataNodeRectangle = Backbone.View.extend({
         this.id = this.model.get("objectId");
     	
         this.render();
-    	this.bindEvent();
     },
     render:function(){
     	var args = this.model.attributes;
@@ -33,7 +32,7 @@ wgp.DataNodeRectangle = Backbone.View.extend({
     		x :  args.height * cos,
     		y : -args.height * sin
     	};
-    	var usage = parseInt(this.model.attributes.height / this.model.attributes.capacity * 100);
+    	var usage = parseInt(this.model.attributes.used / this.model.attributes.capacity * 100);
     	var status = halook.hdfs.constants.dataNode.status.good;
     	if(usage > 85){
     		status = halook.hdfs.constants.dataNode.status.full;
@@ -52,10 +51,11 @@ wgp.DataNodeRectangle = Backbone.View.extend({
     				"stroke" : halook.hdfs.constants.dataNode.frameColor
     			});
     	this.element.toBack();
+    	this.bindEvent();
     },
     bindEvent:function(){
     	var self = this;
-    	var usage = parseInt(this.model.attributes.height / this.model.attributes.capacity * 100);
+    	var usage = parseInt(this.model.attributes.used / this.model.attributes.capacity * 100);
     	this.element.mouseover(function (){
     		$("#nodeStatusBox").html(
     				"host : "+self.model.attributes.host+
@@ -79,11 +79,16 @@ wgp.DataNodeRectangle = Backbone.View.extend({
         	this.element.remove();
         	this.render();
     	}else{
-    		var self = this;
-            setTimeout(function(){
-            	self.element.hide();
-            	self.render();
-            },halook.hdfs.constants.cycle*0.625);
+    		if(this.model.attributes.staticMode){
+	            this.element.hide();
+	            this.render();
+    		}else{
+	    		var self = this;
+	            setTimeout(function(){
+	            	self.element.hide();
+	            	self.render();
+	            },halook.hdfs.constants.cycle*0.625);    			
+    		}
     	}
     	this.bindEvent();
     },
