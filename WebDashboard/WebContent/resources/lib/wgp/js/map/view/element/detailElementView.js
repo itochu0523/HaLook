@@ -12,7 +12,7 @@ wgp.detailElementView = Backbone.View.extend({
     render:function(){
     	var color = this.getStateColor();
     	var strokeWidth = this.getStateStrokeWidth();
-    	this.element = new textArea(this.model.attributes, this._paper);
+    	this.element = new rectangle(this.model.attributes, this._paper);
 },
     update:function(model){
         var instance = this;

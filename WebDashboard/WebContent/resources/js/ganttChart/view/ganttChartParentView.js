@@ -1,43 +1,49 @@
-var ParentTmpView = wgp.AbstractView.extend({
+var ganttChartParentView = wgp.AbstractView.extend({
 	initialize : function() {
 		this.viewType = wgp.constants.VIEW_TYPE.VIEW;
-		this.collection = new parentTmpModelCollection();
+		this.collection = new GanttChartModelCollection();
 		this.attributes = {};
 		this.registerCollectionEvent();
-		//セレクトメニューの追加を行う。////////////////////////////////////////////
-//		$("#" + this.$el.attr("id")).append('<form><select name="job select" id="jobSelecter"><option value="1">job1</option><option value="2">job2</option><option value="3">job3</option></select></form><div id="jobInfoSpace" style="border-style=solid;border-color:red;border-width:10px;">aaa</div><div id="clearSpace"></div>');
-//		$("#jobSelecter").css({
-//			width:"200px",
-//			height:"20px",
-//			marginTop:"10px",
-//			marginRight:"10px",
-//			float:"right",
-//		});
-//		$("#jobInfoSpace").css({
-//			width:"600px",
-//			height:"80px",
-//			marginTop:"10px",
-//			marginRight:"10px",
-//			float:"right",
-//		});
-//		$("#clearSpace").css({
-//			height:"10px",
-//			clear:"both"
-//		});
-		/////////////////////////////////////////////////////////////
+
 		
 		
-		//ganttChart用のdiv Tagの作成を行う。////////////////////////////////////
-		$("#" + this.$el.attr("id")).append('<div id="ganttChart"></div>');
+		/**
+		 * ganttChart
+		 * 
+		 */
+		
+		$("#" + this.$el.attr("id")).append('<div id="ganttChart" style="position:absolute;"></div>');
 		$("#ganttChart").css({
-			width:"900px",
-			height:"400px",
-			float:"right",
-			backgroundColor:"lightcyan"
+			width:"890px",
+			height:"500px",
+			overflow : "scroll",
+			backgroundColor:"#F0FFFF"
 		});
-		var ganttChartView = new ganttChartChartView({id:"ganttChart", rootView:this});
-		///////////////////////////////////////////////////////////////////
 		
+		var ganttChart = new ganttChartView({
+			id : "ganttChart", 
+			rootView : this
+		});
+
+		/**
+		 * ganttChartDetail
+		 * 
+		 */
+		
+		$("#" + this.$el.attr("id")).append('<div id="ganttChartDetail" style="position:relative"></div>');
+		$("#ganttChartDetail").css({
+			width:"890px",
+			height:"210px",
+			"margin-top" : "510px",
+			overflow : "scroll",
+		});
+		$("#ganttChartDetail").html( "■JOB DETAIL" );
+		
+		var ganttChartDetail = new ganttChartDetailView({
+			id : "ganttChartDetail", 
+			rootView : this
+		});
+
 		this.maxId = 0;
 
 		var realTag = $("#" + this.$el.attr("id"));

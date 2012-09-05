@@ -7,7 +7,8 @@ var ganttChartView = wgp.AbstractView.extend({
 //		this.graphId = 1;
 
     	this.maxId = 0;
-    	
+
+		
     	//初期化する。
     	var dataArray = [{
     	     jobId : "job_201208271340_0001",
@@ -70,10 +71,19 @@ var ganttChartView = wgp.AbstractView.extend({
    	     	startTime : "2012/08/27 00:32:00",
    	     	finishTime : "2012/08/27 01:06:00"
 
+    	},
+    	{
+   	     	jobId : "job_201208272010_0008",
+   	     	jobName : "PiEstimator",
+   	     	status : "running",
+   	     	submitTime : "2012/08/27 00:30:00",
+   	     	startTime : "2012/08/27 00:40:00",
+   	     	finishTime : "2012/08/27 01:16:00"
+
     	}];
     	
-    	var startX = 100;
-    	var startY = 295;
+    	var startX = 130;
+    	var startY = 445;
     	var width = 0;
     	var status = null;
     	
@@ -103,34 +113,46 @@ var ganttChartView = wgp.AbstractView.extend({
         var property = new wgp.MapElement({
         	    objectId : 1,
         	    objectName : "wgp.MapStateElementView",
-        	    pointX : 100,
+        	    pointX : 130,
         	    pointY : 50,
         	    width : 0,
-        	    height : 250
+        	    height : 400
         	});
-        new wgp.MapStateElementView({
+        new wgp.ganttChartAxisStateElementView({
         	model : property,
         	paper : this.paper
         	});
         var property1 = new wgp.MapElement({
     	    objectId : 2,
-    	    objectName : "wgp.MapStateElementView",
-    	    pointX : 100,
-    	    pointY : 300,
-    	    width : 600,
+    	    objectName : "wgp.MapElementView",
+    	    pointX : 130,
+    	    pointY : 450,
+    	    width : 700,
     	    height : 0,
     	});
-        new wgp.MapStateElementView({
+        new wgp.ganttChartAxisStateElementView({
         	model : property1,
         	paper : this.paper
     	});
-
+        var Label = new wgp.MapElement({
+    	    objectId : 3,
+    	    objectName : "wgp.ganttChartAxisNameView",
+    	    pointX : 130,
+    	    pointY : 450,
+    	    widthX : 700,
+    	    text : dataArray[0].submitTime,
+    	});
+        new wgp.ganttChartAxisNameView({
+        	model : Label,
+        	paper : this.paper
+    	});
+        
         for(var i=0; i<dataArray.length; i++)
         {
         	if(i == 0)
         	{
-        		width = (new Date(dataArray[0].finishTime)/1000-new Date(dataArray[0].submitTime)/1000)/60;
-        		status = this.getStatus(dataArray[0]);
+        		width = (new Date(dataArray[0].finishTime)/1000-new Date(dataArray[0].submitTime)/1000)/30;
+        		status = this.getStatus(dataArray[0].status);
         		var ganttChartProperty = new wgp.MapElement({
         			objectId : i+1,
         			objectName : "wgp.MapStateElementView",
@@ -153,7 +175,7 @@ var ganttChartView = wgp.AbstractView.extend({
         	}
         	else {
         		width = (new Date(dataArray[i].finishTime)/1000-new Date(dataArray[i].submitTime)/1000)/30;
-        		status = this.getStatus(dataArray[i]);
+        		status = this.getStatus(dataArray[i].status);
         		var ganttChartProperty = new wgp.MapElement({
         			objectId : i+1,
         			objectName : "wgp.MapStateElementView",
@@ -214,15 +236,18 @@ var ganttChartView = wgp.AbstractView.extend({
 	onRemove : function(element){
 		console.log('called removeModel');
 	},
-	getStatus : function(dataArray){
-		if(dataArray.status.match("success")){
+	getStatus : function(status){
+		if(status.match("success")){
 			return wgp.constants.STATE.SUCCESS;
 		}
-		else if(dataArray.status.match("error")){
+		else if(status.match("error")){
 			return wgp.constants.STATE.ERROR;
 		}
-		else if(dataArray.status.match("warn")){
+		else if(status.match("warn")){
 			return wgp.constants.STATE.WARN;
+		}
+		else if(status.match("running")){
+			return wgp.constants.STATE.RUNNING;
 		}
 		else {
 			return wgp.constants.STATE.NORMAL;

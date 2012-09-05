@@ -36,8 +36,43 @@ wgp.ganttchartStateElementView = Backbone.View.extend({
     },
     render:function(){
     	var color = this.getStateColor();
+    	var mouseOverColor = "rgba(255, 120, 0, 30)";
     	var strokeWidth = this.getStateStrokeWidth();
+    	var dotLineX = 0;
     	this.model.set({"attributes" : {stroke:color, "stroke-width" : strokeWidth}}, {silent:true});
+
+    	if(this.model.attributes.state.match("running")) {
+    		console.log(this.model.attributes.width/12);
+    		var dotLine = [];
+    		var models;
+    		for(var num=0; num<this.model.attributes.width/20; num++) {
+    			if(num == parseInt(this.model.attributes.width/20))
+    			{
+        			models = new wgp.MapElement({
+						pointX : this.model.attributes.pointX + dotLineX,
+						pointY : this.model.attributes.pointY,
+						width : this.model.attributes.width - dotLineX ,
+						height : 0,
+					});
+    			}
+    			else
+    			{
+    				models = new wgp.MapElement({
+    					pointX : this.model.attributes.pointX + dotLineX,
+						pointY : this.model.attributes.pointY,
+						width : 16,
+						height : 0,
+					});
+    			}
+
+    			dotLine.push( models );
+    			dotLineX += 20;
+    		}
+    		for(var num=0; num<dotLine.length; num++) {
+    			dotLine[num].set({"attributes" : {stroke:color, "stroke-width" : strokeWidth}}, {silent:true});
+    		}
+    			
+    	}
     	var leftLine = new wgp.MapElement({
        	    pointX : this.model.attributes.pointX,
     		pointY : this.model.attributes.pointY - 5,
@@ -59,8 +94,8 @@ wgp.ganttchartStateElementView = Backbone.View.extend({
 //    	    }
     	});
     	var jobLabel = new wgp.MapElement({
-    			pointX : 30,
-    			pointY : this.model.attributes.pointY - 5,
+    			pointX : 70,
+    			pointY : this.model.attributes.pointY - 3,
     			text : this.model.attributes.label,
     			fontSize : 10
     	});
@@ -73,33 +108,81 @@ wgp.ganttchartStateElementView = Backbone.View.extend({
 		var detail = new wgp.MapElement({
 				pointX : this.model.attributes.pointX + this.model.attributes.width + 100,
 				pointY : this.model.attributes.pointY - 10,
-				text : "jobId : " + this.model.attributes.label + "\n jobName : " + this.model.attributes.text
-						+ "\n status : " + this.model.attributes.state + "\n submitTime : " + this.model.attributes.submitTime
-						+ "\n startTime : " + this.model.attributes.startTime + "\n finishTime : " + this.model.attributes.finishTime,
+				text : "■JOB DETAIL <br /> jobId : " + this.model.attributes.label + "<br /> jobName : " + this.model.attributes.text
+						+ "<br /> status : " + this.model.attributes.state + "<br /> submitTime : " + this.model.attributes.submitTime
+						+ "<br /> startTime : " + this.model.attributes.startTime + "<br /> finishTime : " + this.model.attributes.finishTime,
 				fontSize : 12
+		});
+		var mouseOverRect = new wgp.MapElement({
+				pointX : 130,
+				pointY : this.model.attributes.pointY - 5,
+				width : 700,
+				height : 10
 		});
 		leftLine.set({"attributes" : {stroke:color, "stroke-width" : strokeWidth}}, {silent:true});
 		rightLine.set({"attributes" : {stroke:color, "stroke-width" : strokeWidth}}, {silent:true});
 		jobLabel.set({"attributes" : {stroke:color, "stroke-width" : strokeWidth}}, {silent:true});
 		jobName.set({"attributes" : {stroke:color, "stroke-width" : strokeWidth}}, {silent:true});
+		mouseOverRect.set({"attributes" : {fill:mouseOverColor}}, {silent:true});
 
 		this.element = [];
-    	this.element.push(
-    		new line(this.model.attributes, this._paper),
-    		new line(leftLine.attributes, this._paper),
-    		new line(rightLine.attributes, this._paper)
-//    		new textArea(jobLabel, this._paper),
-//    		new textArea(jobName, this._paper)
-    	);
-    	
-		this.element[0].object.click( function() {
-	   		new wgp.detailElementView({
-				model : detail,
-				paper : this.paper
-			});
-			console.log("click " + detail.attributes.label + ".");
-			this.render();
-		});
+		var focusElement;
+		if(this.model.attributes.state.match("running"))
+		{
+			for(var num=0; num<dotLine.length; num++)
+			{
+				console.log(dotLine[num].attributes.pointX);
+				this.element.push( new line(dotLine[num].attributes, this._paper) );
+			}
+			this.element.push(
+        		new line(leftLine.attributes, this._paper),
+        		new line(rightLine.attributes, this._paper)
+//        		new textArea(jobLabel, this._paper),
+//        		new textArea(jobName, this._paper)
+        	);
+    		this._paper.text(jobLabel.attributes.pointX, jobLabel.attributes.pointY, jobLabel.attributes.text);
+//    		this._paper.text(jobName.attributes.pointX, jobName.attributes.pointY, jobName.attributes.text);
+
+			for(var num=0; num<this.element.length; num++)
+			{
+				this.element[num].object.mouseover( function() {
+//					new wgp.detailElementView({
+//						model : mouseOverRect,
+//						paper : this.paper
+//					});
+					$("#ganttChartDetail").html(detail.attributes.text);
+				});
+				this.element[num].object.click( function(e) {
+					console.log(e.pageX);
+				});
+			}        	
+		}
+		else
+		{
+			this.element.push(
+					new line(this.model.attributes, this._paper),
+					new line(leftLine.attributes, this._paper),
+					new line(rightLine.attributes, this._paper)
+//    				new textArea(jobLabel, this._paper),
+//    			new textArea(jobName, this._paper)
+			);
+    		this._paper.text(jobLabel.attributes.pointX, jobLabel.attributes.pointY, jobLabel.attributes.text);
+//    		this._paper.text(jobName.attributes.pointX, jobName.attributes.pointY, jobName.attributes.text);
+
+			for(var num=0; num<this.element.length; num++)
+			{
+				this.element[num].object.mouseover( function() {
+//					new wgp.detailElementView({
+//						model : detail,
+//						paper : this.paper
+//					});
+					$("#ganttChartDetail").html(detail.attributes.text);
+				});
+				this.element[num].object.click( function(e) {
+					console.log(e.pageX);
+				});
+			}
+		}
 },
     update:function(model){
         var instance = this;
@@ -122,4 +205,5 @@ wgp.ganttchartStateElementView = Backbone.View.extend({
         var width = this.model.get("stroke");
         return width;
     }
+    
 });
