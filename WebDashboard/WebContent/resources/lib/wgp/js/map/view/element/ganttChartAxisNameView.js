@@ -88,9 +88,9 @@ wgp.ganttChartAxisNameView = Backbone.View.extend({
     		timeLine.push(
     				new wgp.MapElement({
 					    pointX : this.model.attributes.pointX + timeWidth,
-					    pointY : 50,
+					    pointY : 0,
 					    width : 0,
-					    height : 400
+					    height : 450
 					})
     		);
     		timeWidth += 120;

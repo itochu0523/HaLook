@@ -114,9 +114,9 @@ var ganttChartView = wgp.AbstractView.extend({
         	    objectId : 1,
         	    objectName : "wgp.MapStateElementView",
         	    pointX : 130,
-        	    pointY : 50,
+        	    pointY : 0,
         	    width : 0,
-        	    height : 400
+        	    height : 450
         	});
         new wgp.ganttChartAxisStateElementView({
         	model : property,
